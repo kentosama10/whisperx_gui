@@ -28,15 +28,16 @@ if not os.path.exists(DEFAULT_PYTHON):
     DEFAULT_PYTHON = "python.exe"  # fallback to system python
 # ======================================================================================
 
-# Updated Python interpreter detection with venv activation
+# Update the venv detection and script paths
+DEFAULT_PYTHON = "python.exe"  # default fallback
+ACTIVATE_SCRIPT = None
 venv_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "venv")
+
 if os.path.exists(venv_dir):
     DEFAULT_PYTHON = os.path.join(venv_dir, "Scripts", "python.exe")
     ACTIVATE_SCRIPT = os.path.join(venv_dir, "Scripts", "activate.bat")
     os.environ['VIRTUAL_ENV'] = venv_dir
     os.environ['PATH'] = os.path.join(venv_dir, 'Scripts') + os.pathsep + os.environ['PATH']
-else:
-    DEFAULT_PYTHON = "python.exe"  # fallback to system python
 
 class WorkerSignals(QtCore.QObject):
     progress = QtCore.pyqtSignal(str)
@@ -54,26 +55,37 @@ class TranscribeWorker(QtCore.QRunnable):
     def run(self):
         try:
             env = os.environ.copy()
-            if os.path.exists(ACTIVATE_SCRIPT):
-                # Quote paths with spaces and use proper command construction
-                cmd = [
-                    f'"{DEFAULT_PYTHON}"',
-                    "-m",
-                    "whisperx",
-                    f'"{self.cmd_list[3]}"',  # Input file
-                    "--model",
-                    self.cmd_list[5],
-                    "--output_dir",
-                    f'"{self.cmd_list[7]}"',  # Output directory
-                    "--output_format",
-                    self.cmd_list[9],
-                    "--compute_type",
-                    self.cmd_list[11],
-                    "--device",
-                    self.cmd_list[13]
-                ]
+            
+            # Build the command with venv activation if available
+            if ACTIVATE_SCRIPT and os.path.exists(ACTIVATE_SCRIPT):
+                # Create a batch script that activates venv and runs the command
+                temp_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "run_whisperx.bat")
+                with open(temp_script, "w", encoding='utf-8') as f:
+                    f.write('@echo off\n')
+                    f.write(f'call "{ACTIVATE_SCRIPT}"\n')
+                    # Set HF_TOKEN environment variable if present
+                    if '--hf_token' in self.cmd_list:
+                        token_index = self.cmd_list.index('--hf_token') + 1
+                        if token_index < len(self.cmd_list):
+                            f.write(f'set HF_TOKEN={self.cmd_list[token_index]}\n')
+                    
+                    # Build the whisperx command
+                    cmd = f'python -m whisperx "{self.cmd_list[3]}" '  # Input file
+                    cmd += f'--model {self.cmd_list[5]} '
+                    cmd += f'--output_dir "{self.cmd_list[7]}" '
+                    cmd += f'--output_format {self.cmd_list[9]} '
+                    cmd += f'--compute_type {self.cmd_list[11]} '
+                    cmd += f'--device {self.cmd_list[13]}'
+                    
+                    # Add diarization if enabled
+                    if '--diarize' in self.cmd_list:
+                        cmd += ' --diarize'
+                    
+                    f.write(cmd + '\n')
+
+                # Run the batch script
                 proc = subprocess.Popen(
-                    " ".join(cmd),
+                    temp_script,
                     cwd=self.cwd,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
@@ -100,6 +112,13 @@ class TranscribeWorker(QtCore.QRunnable):
                 if line:
                     self.signals.progress.emit(line.strip())
             
+            # Clean up temporary batch script
+            if os.path.exists(ACTIVATE_SCRIPT) and os.path.exists("run_whisperx.bat"):
+                try:
+                    os.remove("run_whisperx.bat")
+                except:
+                    pass
+
             # Emit completion signal with return code
             self.signals.finished.emit(proc.returncode)
 

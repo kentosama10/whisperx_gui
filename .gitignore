@@ -1,7 +1,10 @@
 output/
-
 venv/
 transcripts/
-.spec
 build/
 dist/
+
+*.spec
+*.pyc
+*.txt
+*.log

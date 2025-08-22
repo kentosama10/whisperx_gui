@@ -5,7 +5,7 @@ a = Analysis(
     ['whisperx_gui.py'],
     pathex=[],
     binaries=[],
-    datas=[('assets/whisperx_icon.ico', 'assets'), ('venv', 'venv')],
+    datas=[('assets/whisperx_icon.ico', 'assets')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
