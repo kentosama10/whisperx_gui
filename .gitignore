@@ -1,3 +1,7 @@
 output/
 
 venv/
+transcripts/
+.spec
+build/
+dist/

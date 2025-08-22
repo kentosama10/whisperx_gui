@@ -28,6 +28,16 @@ if not os.path.exists(DEFAULT_PYTHON):
     DEFAULT_PYTHON = "python.exe"  # fallback to system python
 # ======================================================================================
 
+# Updated Python interpreter detection with venv activation
+venv_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "venv")
+if os.path.exists(venv_dir):
+    DEFAULT_PYTHON = os.path.join(venv_dir, "Scripts", "python.exe")
+    ACTIVATE_SCRIPT = os.path.join(venv_dir, "Scripts", "activate.bat")
+    os.environ['VIRTUAL_ENV'] = venv_dir
+    os.environ['PATH'] = os.path.join(venv_dir, 'Scripts') + os.pathsep + os.environ['PATH']
+else:
+    DEFAULT_PYTHON = "python.exe"  # fallback to system python
+
 class WorkerSignals(QtCore.QObject):
     progress = QtCore.pyqtSignal(str)
     finished = QtCore.pyqtSignal(int)       # exit code
@@ -36,26 +46,63 @@ class WorkerSignals(QtCore.QObject):
 class TranscribeWorker(QtCore.QRunnable):
     def __init__(self, cmd_list, cwd=None):
         super().__init__()
-        self.cmd_list = cmd_list
+        self.cmd_list = [str(x) for x in cmd_list]  # Convert all arguments to strings
         self.cwd = cwd
         self.signals = WorkerSignals()
 
     @QtCore.pyqtSlot()
     def run(self):
         try:
-            # Run subprocess and stream stdout/stderr
-            proc = subprocess.Popen(
-                self.cmd_list,
-                cwd=self.cwd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                universal_newlines=True,
-                bufsize=1,
-            )
-            for line in proc.stdout:
-                self.signals.progress.emit(line.rstrip("\n"))
-            proc.wait()
+            env = os.environ.copy()
+            if os.path.exists(ACTIVATE_SCRIPT):
+                # Quote paths with spaces and use proper command construction
+                cmd = [
+                    f'"{DEFAULT_PYTHON}"',
+                    "-m",
+                    "whisperx",
+                    f'"{self.cmd_list[3]}"',  # Input file
+                    "--model",
+                    self.cmd_list[5],
+                    "--output_dir",
+                    f'"{self.cmd_list[7]}"',  # Output directory
+                    "--output_format",
+                    self.cmd_list[9],
+                    "--compute_type",
+                    self.cmd_list[11],
+                    "--device",
+                    self.cmd_list[13]
+                ]
+                proc = subprocess.Popen(
+                    " ".join(cmd),
+                    cwd=self.cwd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    universal_newlines=True,
+                    shell=True,
+                    env=env
+                )
+            else:
+                # Fallback if no venv activation script exists
+                proc = subprocess.Popen(
+                    self.cmd_list,
+                    cwd=self.cwd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    universal_newlines=True,
+                    env=env
+                )
+
+            # Process output
+            while True:
+                line = proc.stdout.readline()
+                if not line and proc.poll() is not None:
+                    break
+                if line:
+                    self.signals.progress.emit(line.strip())
+            
+            # Emit completion signal with return code
             self.signals.finished.emit(proc.returncode)
+
         except Exception as e:
             self.signals.error.emit(str(e))
             self.signals.finished.emit(-1)
