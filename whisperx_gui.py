@@ -23,7 +23,9 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 
 # ====== CONFIG - update to point to python interpreter that has whisperx installed ======
 # You can set this to your venv python exe, or just "python" if running in same env
-DEFAULT_PYTHON = "python"  # e.g. r"C:\path\to\venv\Scripts\python.exe"
+DEFAULT_PYTHON = os.path.join(os.path.dirname(os.path.abspath(__file__)), "venv", "Scripts", "python.exe")
+if not os.path.exists(DEFAULT_PYTHON):
+    DEFAULT_PYTHON = "python.exe"  # fallback to system python
 # ======================================================================================
 
 class WorkerSignals(QtCore.QObject):
@@ -62,7 +64,7 @@ class TranscribeWorker(QtCore.QRunnable):
 class WhisperXApp(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("WhisperX Transcriber - GUI")
+        self.setWindowTitle("WhisperX Transcriber GUI - by kentosama10")
         self.resize(780, 520)
         
         # Set application icon if available
