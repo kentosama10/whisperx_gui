@@ -27,11 +27,11 @@ echo Installing WhisperX and dependencies...
 python -m pip install --upgrade pip
 pip install PyQt5
 pip install pyinstaller
-pip install pip install whisperx
+pip install whisperx
 
 :: Create executable using PyInstaller
 echo Creating executable...
-pyinstaller --onefile --noconsole --name whisperx_gui --icon=whisperx.ico whisperx_gui.py
+pyinstaller --onefile --noconsole --name whisperx_gui --icon=assets\whisperx.ico whisperx_gui.py
 
 :: Create dist directory if it doesn't exist
 if not exist "dist" mkdir dist
@@ -40,23 +40,8 @@ if not exist "dist" mkdir dist
 echo Copying executable to dist folder...
 copy whisperx_gui.exe dist\
 
-:: Create shortcut on desktop
-echo Creating desktop shortcut...
-set SCRIPT="%TEMP%\create_shortcut.vbs"
-(
-    echo Set oWS = WScript.CreateObject^("WScript.Shell"^)
-    echo sLinkFile = oWS.ExpandEnvironmentStrings^("%%USERPROFILE%%\Desktop\WhisperX.lnk"^)
-    echo Set oLink = oWS.CreateShortcut^(sLinkFile^)
-    echo oLink.TargetPath = "%~dp0dist\whisperx_gui.exe"
-    echo oLink.WorkingDirectory = "%~dp0dist"
-    echo oLink.Save
-) > %SCRIPT%
-cscript /nologo %SCRIPT%
-del %SCRIPT%
-
 echo.
 echo Installation complete! You can now run WhisperX GUI by:
 echo 1. Running dist\whisperx_gui.exe
-echo 2. Using the desktop shortcut
 echo.
 pause

@@ -22,9 +22,18 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 
 # ====== CONFIG - update to point to python interpreter that has whisperx installed ======
 # You can set this to your venv python exe, or just "python" if running in same env
-DEFAULT_PYTHON = os.path.join(os.path.dirname(os.path.abspath(__file__)), "venv", "Scripts", "python.exe")
-if not os.path.exists(DEFAULT_PYTHON):
-    DEFAULT_PYTHON = "python.exe"  # fallback to system python
+def get_python_executable():
+    """Get the correct Python executable based on environment"""
+    if hasattr(sys, 'frozen'):
+        # Running as compiled exe
+        return sys.executable
+    
+    venv_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "venv")
+    if os.path.exists(venv_dir):
+        return os.path.join(venv_dir, "Scripts", "python.exe")
+    return "python.exe"
+
+DEFAULT_PYTHON = get_python_executable()
 # ======================================================================================
 
 # Update the venv detection and script paths
