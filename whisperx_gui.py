@@ -143,7 +143,7 @@ class WhisperXApp(QtWidgets.QWidget):
         
         # Set application icon if available
         try:
-            icon_path = "whisperx.ico"
+            icon_path = os.path.join("assets", "whisperx.ico")
             if os.path.exists(icon_path):
                 self.setWindowIcon(QtGui.QIcon(icon_path))
             else:
