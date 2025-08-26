@@ -15,7 +15,6 @@ import sys
 import os
 import shlex
 import subprocess
-import threading
 import time
 from pathlib import Path
 
@@ -135,7 +134,7 @@ class WhisperXApp(QtWidgets.QWidget):
         
         # Set application icon if available
         try:
-            icon_path = "whisperx_icon.ico"
+            icon_path = "whisperx.ico"
             if os.path.exists(icon_path):
                 self.setWindowIcon(QtGui.QIcon(icon_path))
             else:
