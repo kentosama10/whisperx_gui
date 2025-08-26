@@ -143,17 +143,33 @@ class WhisperXApp(QtWidgets.QWidget):
         
         # Set application icon if available
         try:
-            icon_path = os.path.join("assets", "whisperx.ico")
-            if os.path.exists(icon_path):
-                self.setWindowIcon(QtGui.QIcon(icon_path))
+            # Get the application's base directory
+            if getattr(sys, 'frozen', False):
+                # If running as compiled executable
+                base_dir = os.path.dirname(sys.executable)
             else:
-                # Try PNG as fallback
-                icon_path = "whisperx_icon.png"
+                # If running from script
+                base_dir = os.path.dirname(os.path.abspath(__file__))
+            
+            # Try different icon locations
+            icon_paths = [
+                os.path.join(base_dir, "assets", "whisperx.ico"),
+                os.path.join(base_dir, "whisperx.ico"),
+                os.path.join(base_dir, "assets", "whisperx_icon.png"),
+                os.path.join(base_dir, "whisperx_icon.png")
+            ]
+            
+            icon_set = False
+            for icon_path in icon_paths:
                 if os.path.exists(icon_path):
                     self.setWindowIcon(QtGui.QIcon(icon_path))
+                    icon_set = True
+                    break
+                    
+            if not icon_set:
+                print(f"Warning: No icon found in paths: {icon_paths}")
         except Exception as e:
-            # Icon setting failed, continue without icon
-            pass
+            print(f"Failed to set application icon: {e}")
         
         self.threadpool = QtCore.QThreadPool()
 
@@ -426,6 +442,26 @@ class WhisperXApp(QtWidgets.QWidget):
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
+
+    # Set application icon globally (shows in taskbar and alt-tab)
+    try:
+        if getattr(sys, 'frozen', False):
+            base_dir = os.path.dirname(sys.executable)
+        else:
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+        icon_paths = [
+            os.path.join(base_dir, "assets", "whisperx.ico"),
+            os.path.join(base_dir, "whisperx.ico"),
+            os.path.join(base_dir, "assets", "whisperx_icon.png"),
+            os.path.join(base_dir, "whisperx_icon.png")
+        ]
+        for icon_path in icon_paths:
+            if os.path.exists(icon_path):
+                app.setWindowIcon(QtGui.QIcon(icon_path))
+                break
+    except Exception as e:
+        print(f"Failed to set global app icon: {e}")
+
     win = WhisperXApp()
     win.show()
     sys.exit(app.exec_())

@@ -3,6 +3,15 @@ echo WhisperX Installation Script
 echo ===========================
 echo.
 
+REM Create assets directory if it doesn't exist
+if not exist "assets" mkdir assets
+
+REM Check if icon exists, if not, create a default one
+if not exist "assets\whisperx.ico" (
+    echo Creating default icon...
+    powershell -Command "& {$ws = New-Object -ComObject WScript.Shell; $lnk = $ws.CreateShortcut('%~dp0\assets\whisperx.ico'); $lnk.Save()}"
+)
+
 :: Check if Python is already installed
 python --version > nul 2>&1
 if %errorlevel% equ 0 (
@@ -31,7 +40,12 @@ pip install whisperx
 
 :: Create executable using PyInstaller
 echo Creating executable...
-pyinstaller --onefile --noconsole --name whisperx_gui --icon=assets\whisperx.ico whisperx_gui.py
+if exist "assets\whisperx.ico" (
+    pyinstaller --onefile --noconsole --name whisperx_gui --icon=assets\whisperx.ico whisperx_gui.py
+) else (
+    echo Warning: Icon not found, building without custom icon...
+    pyinstaller --onefile --noconsole --name whisperx_gui whisperx_gui.py
+)
 
 :: Create dist directory if it doesn't exist
 if not exist "dist" mkdir dist
